@@ -25,11 +25,19 @@ var bullets;
 
 var fireRate = 100;
 var nextFire = 0;
+var controls;
+var stance = 1;
+
+var punch_arm = 0;
+var punch_rate = 500;
+var next_punch = 0;
+
+var kick_rate = 500;
+var next_kick = 0;
+var kick_types = ['low_kick', 'middle_kick', 'high_kick'];
 
 var bg;
 
-var controls;
-var stance = 1;
 
 var spawn_allowed = true;
 var spawn_timer;
@@ -147,10 +155,15 @@ function create_animations(){
     player.animations.add('midair', [35, 36], 2, true);
     player.animations.add('end_jump', [37, 38, 39], 3, true);
 
-    player.animations.add('left_punch', [147, 148, 149, 150, 153], 5, false);
-    player.animations.add('right_punch', [147, 148, 149, 150, 153], 5, false);
 
-    player.animations.add('low_kick', [163, 164, 165, 166, 160], 5, false);
+    // Punches
+    player.animations.add('left_punch', [147, 148, 149, 150, 153], 15, false);
+    player.animations.add('right_punch', [150, 151, 152, 150, 153], 15, false);
+
+    // Kicks
+    player.animations.add('low_kick', [161, 162, 163, 164], 15, false);
+    player.animations.add('middle_kick', [167, 168, 169, 170], 15, false);
+    player.animations.add('high_kick', [177, 178, 179, 180], 15, false);
     //player.animations.add('right_punch', [166, 167, 168, 166, 160], 5, false);
 
     player.animations.add('fast_shot_to_air', [306, 307, 308], 60, false);
@@ -252,30 +265,37 @@ function process_input(){
 }
 
 function shoot(){
-    if (game.input.activePointer.isDown) {
-        if (game.time.now > nextFire && bullets.countDead() > 0) {
+       if (game.time.now > nextFire && bullets.countDead() > 0) {
             player.animations.play('fast_shot_to_air');
             nextFire = game.time.now + fireRate;
-
             var bullet = bullets.getFirstDead();
-
             bullet.reset(player.x - 8, player.y - 8);
             bullet.rotation = this.game.math.angleBetween(player.x, player.y, game.input.activePointer.x, this.game.input.activePointer.y);
-            
+             
             game.physics.arcade.moveToPointer(bullet, 300);
-        }
-    }    
+       }  
 }
 
 function punch(){
-    player.animations.play('left_punch');
+    if(game.time.now > next_punch){
+        next_punch = game.time.now + punch_rate;
+        if(!punch_arm){
+            player.animations.play('left_punch');
+            punch_arm = 1;
+        } else {
+            player.animations.play('right_punch');
+            punch_arm = 0;
+        }
+    }
+    player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle'); }, this);
 }
 
 function kick(){
-    if(game.input.activePointer.isDown){
-
-    }
-
+    if(game.time.now > next_kick){
+        next_kick = game.time.now + kick_rate;
+        player.animations.play(kick_types[Math.floor(Math.random() * kick_types.length)]);        
+    }    
+    player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle'); }, this);
 }
 
 function trigger_spawn(){    
