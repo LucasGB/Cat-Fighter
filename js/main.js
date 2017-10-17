@@ -31,8 +31,11 @@ var bg;
 var controls;
 
 var spawn_allowed = true;
-var enemy_credits;
+var spawn_timer;
+var enemy_credits = 20;
+var enemy_costs = [20, 5]
 var enemy_wave;
+
 
 var bonus;
 var bolas_de_la;
@@ -76,26 +79,40 @@ function create_projectiles(){
 }
 
 function spawn_enemies(){
-    enemy_wave = game.add.group();
-    for (var i  = 0; i  < 3; i++){
-        var enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), game.rnd.integerInRange(0, 300), 'flying_tongue');
-        enemy.anchor.setTo(0.5, 0.5);
-        game.physics.enable(enemy, Phaser.Physics.ARCADE);
-        enemy.body.collideWorldBounds = true;
-        enemy.health = 20;
-        enemy.animations.add('fly', [0, 1, 2, 3, 4], 20, true);
-        enemy.animations.play('fly')
-        //enemy.body.setSize(16, 32, 22, 23);
-    }  
-    var enemy = enemy_wave.create(700, 550, 'skeleton_warrior');
-    enemy.anchor.setTo(0.5, 0.5);
-    game.physics.enable(enemy, Phaser.Physics.ARCADE);
-    enemy.body.collideWorldBounds = true;
-    enemy.health = 100
-    enemy.animations.add('march', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 30, true);
-    enemy.animations.play('march');
-    enemy.scale.setTo(1.5);
+    var tmp_credits = enemy_credits
+    spawn_allowed = false;
+    enemy_wave = game.add.group();    
 
+    while(tmp_credits > 0){
+        var rand = enemy_costs[Math.floor(Math.random() * enemy_costs.length)]
+
+        if(rand == 100){
+
+        } else if(rand == 50){
+
+        } else if(rand == 20){
+            var enemy = enemy_wave.create(700, 550, 'skeleton_warrior');
+            enemy.anchor.setTo(0.5, 0.5);
+            game.physics.enable(enemy, Phaser.Physics.ARCADE);
+            enemy.body.collideWorldBounds = true;
+            enemy.health = 100
+            enemy.animations.add('march', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 30, true);
+            enemy.animations.play('march');
+            enemy.scale.setTo(1.5);
+        } else if(rand == 10){
+
+        } else if(rand == 5){
+            var enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), game.rnd.integerInRange(0, 300), 'flying_tongue');
+            enemy.anchor.setTo(0.5, 0.5);
+            game.physics.enable(enemy, Phaser.Physics.ARCADE);
+            enemy.body.collideWorldBounds = true;
+            enemy.health = 20;
+            enemy.animations.add('fly', [0, 1, 2, 3, 4], 20, true);
+            enemy.animations.play('fly')
+        }
+        tmp_credits = tmp_credits - rand
+    } 
+    enemy_credits = enemy_credits + 20
 
 }
 
@@ -230,9 +247,21 @@ function scratch(){
     }
 }
 
+function trigger_spawn(){    
+    if(spawn_allowed == false && enemy_wave.countLiving() == 0){        
+        spawn_allowed = true;
+        spawn_timer = game.time.now + 500
+    }
+}
+
 function update() {
 
     // game.physics.arcade.collide(player, layer);
+    trigger_spawn();
+
+    if(spawn_allowed && game.time.now > spawn_timer){
+        spawn_enemies();
+    }
 
     player.body.velocity.x = 0;
     move();
