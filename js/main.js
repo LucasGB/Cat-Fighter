@@ -29,6 +29,7 @@ var nextFire = 0;
 var bg;
 
 var controls;
+var stance = 1;
 
 var spawn_allowed = true;
 var spawn_timer;
@@ -55,7 +56,9 @@ function define_controls(){
         crouch: game.input.keyboard.addKey(Phaser.Keyboard.S),
         left: game.input.keyboard.addKey(Phaser.Keyboard.A),
         right: game.input.keyboard.addKey(Phaser.Keyboard.D),
-        fire: game.input.keyboard.addKey(Phaser.Keyboard.G),
+        punch: game.input.keyboard.addKey(Phaser.Keyboard.ONE),
+        kick: game.input.keyboard.addKey(Phaser.Keyboard.TWO),
+        power: game.input.keyboard.addKey(Phaser.Keyboard.THREE),
         fullscreen: game.input.keyboard.addKey(Phaser.Keyboard.F11)
     }
     return controls
@@ -144,8 +147,11 @@ function create_animations(){
     player.animations.add('midair', [35, 36], 2, true);
     player.animations.add('end_jump', [37, 38, 39], 3, true);
 
-    player.animations.add('left_punch', [163, 164, 165, 166, 160])
-    player.animations.add('right_punch', [166, 167, 168, 166, 160])
+    player.animations.add('left_punch', [147, 148, 149, 150, 153], 5, false);
+    player.animations.add('right_punch', [147, 148, 149, 150, 153], 5, false);
+
+    player.animations.add('low_kick', [163, 164, 165, 166, 160], 5, false);
+    //player.animations.add('right_punch', [166, 167, 168, 166, 160], 5, false);
 
     player.animations.add('fast_shot_to_air', [306, 307, 308], 60, false);
     player.animations.add('jump_shot_to_front', [320, 321, 322, 323, 324, 325], 6, true);
@@ -186,7 +192,7 @@ function create() {
     spawn_enemies();
 }
 
-function move(){
+function process_input(){
     if (controls.left.isDown) {
         player.body.velocity.x = -150;
 
@@ -223,6 +229,26 @@ function move(){
         player.animations.play('start_jump');
         jumpTimer = game.time.now + 750;
     }
+
+    if(controls.punch.isDown){
+        stance = 1;
+    } else if(controls.kick.isDown){
+        stance = 2;
+    } else if(controls.power.isDown){
+        stance = 3;
+    }
+
+    if(game.input.activePointer.isDown){
+        console.log(stance);
+        switch(stance){
+            case 1:     punch();
+            break;
+            case 2:     kick();
+            break;
+            case 3:     shoot();
+            break;
+        }
+    }
 }
 
 function shoot(){
@@ -241,10 +267,15 @@ function shoot(){
     }    
 }
 
-function scratch(){
+function punch(){
+    player.animations.play('left_punch');
+}
+
+function kick(){
     if(game.input.activePointer.isDown){
 
     }
+
 }
 
 function trigger_spawn(){    
@@ -264,8 +295,7 @@ function update() {
     }
 
     player.body.velocity.x = 0;
-    move();
-    shoot();
+    process_input();
     chase_player();
 
     game.physics.arcade.collide(bullets, enemy_wave, apply_damage, null, this);
