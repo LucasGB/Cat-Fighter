@@ -18,7 +18,16 @@ function preload() {
 
 var player;
 var facing = 'left';
- 
+
+// GUI
+var health = "a";
+var energy = 50;
+var energyText = "energy:" + energy; 
+var energyTimer;
+var style2 = {font: "24px Arial", fill: "Yellow", align: "center" };
+var text1;
+
+
 var jumpTimer = 0;
 var controls;
 var bullets;
@@ -28,6 +37,7 @@ var nextFire = 0;
 var controls;
 var stance = 1;
 
+var hitboxes;
 var punch_arm = 0;
 var punch_rate = 500;
 var next_punch = 0;
@@ -55,6 +65,54 @@ function toggleFullScreen() {
         game.scale.stopFullScreen()
     } else {
         game.scale.startFullScreen(false)
+    }
+}
+
+function create() {
+
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    game.time.desiredFps = 30;
+
+    bg = game.add.tileSprite(0, 0, 800, 600, 'background');
+
+    //game.physics.arcade.gravity.y = 250;
+
+    player = game.add.sprite(64, 550, 'cat');
+    player.anchor.setTo(0.5, 0.5);
+
+    game.physics.enable(player, Phaser.Physics.ARCADE);
+    player.body.gravity.y = 400;
+    player.body.collideWorldBounds = true;
+    player.body.setSize(16, 32, 22, 23);
+
+
+    bonus = game.add.group();
+    bonus.enableBody = true;
+    bonus.physicsBodyType = Phaser.Physics.ARCADE;
+
+    create_animations();
+
+    text1 = this.game.add.text(this.game.world.x + 47, 10, energyText, style2);
+    energyTimer = this.game.time.create(false);
+    energyTimer.start();
+    energyTimer.loop(400, updateCounter, this);
+
+    controls = define_controls();
+
+    controls.fullscreen.onDown.add(toggleFullScreen)
+
+    bullets = create_projectiles();
+    hitboxes = create_hitboxes();
+
+    spawn_enemies();
+}
+
+function updateCounter(){
+    if(energy >= 100){
+        energy = 100;
+    } else {
+        energy++;
     }
 }
 
@@ -89,6 +147,22 @@ function create_projectiles(){
     return bullets;
 }
 
+function create_hitboxes(){
+    hitboxes = game.add.group();
+    hitboxes.enableBody = true;
+    hitboxes.physicsBodyType = Phaser.Physics.ARCADE;
+
+    hitboxes.createMultiple(50, 'energy_projectiles');
+    hitboxes.setAll('checkWorldBounds', true);
+    hitboxes.setAll('outOfBoundsKill', true);
+    hitboxes.setAll('anchor.x', 0.5);
+    hitboxes.setAll('anchor.y', 0.5);
+    hitboxes.setAll('body.gravity.y', 0);
+    hitboxes.callAll('animations.add', 'animations', 'energy_shot', [48, 49, 50, 51, 52], 8, true);
+    hitboxes.callAll('play', null, 'energy_shot');
+
+    return hitboxes;
+}
 function spawn_enemies(){
     var tmp_credits = enemy_credits
     spawn_allowed = false;
@@ -106,6 +180,7 @@ function spawn_enemies(){
             enemy.anchor.setTo(0.5, 0.5);
             game.physics.enable(enemy, Phaser.Physics.ARCADE);
             enemy.body.collideWorldBounds = true;
+            enemy.body.gravity.y = 800;
             enemy.health = 100
             enemy.animations.add('march', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 30, true);
             enemy.animations.play('march');
@@ -139,11 +214,6 @@ function check_collision(){
     })
 }
 
-
-function update_enemies(){
-
-}
-
 function create_animations(){
     // Player Animations
     player.animations.add('idle', [0, 1, 2, 3], 4, true);
@@ -168,41 +238,6 @@ function create_animations(){
 
     player.animations.add('fast_shot_to_air', [306, 307, 308], 60, false);
     player.animations.add('jump_shot_to_front', [320, 321, 322, 323, 324, 325], 6, true);
-
-
-}
-
-
-function create() {
-
-    game.physics.startSystem(Phaser.Physics.ARCADE);
-
-    game.time.desiredFps = 30;
-
-    bg = game.add.tileSprite(0, 0, 800, 600, 'background');
-
-    //game.physics.arcade.gravity.y = 250;
-
-    player = game.add.sprite(64, 550, 'cat');
-    player.anchor.setTo(0.5, 0.5);
-
-    game.physics.enable(player, Phaser.Physics.ARCADE);
-    player.body.gravity.y = 400;
-    player.body.collideWorldBounds = true;
-    player.body.setSize(16, 32, 22, 23);
-
-
-    bonus = game.add.group();
-    bonus.enableBody = true;
-    bonus.physicsBodyType = Phaser.Physics.ARCADE;
-
-    create_animations();
-
-    controls = define_controls();
-
-    controls.fullscreen.onDown.add(toggleFullScreen)
-    bullets = create_projectiles();
-    spawn_enemies();
 }
 
 function process_input(){
@@ -281,6 +316,10 @@ function punch(){
         next_punch = game.time.now + punch_rate;
         if(!punch_arm){
             player.animations.play('left_punch');
+
+            var hitbox = hitboxes.getFirstDead();
+            hitbox.reset(player.x - 8, player.y - 8);
+
             punch_arm = 1;
         } else {
             player.animations.play('right_punch');
@@ -319,6 +358,7 @@ function update() {
     chase_player();
 
     game.physics.arcade.collide(bullets, enemy_wave, apply_damage, null, this);
+    game.physics.arcade.collide(hitboxes, enemy_wave, apply_damage, null, this);
     game.physics.arcade.collide(player, bonus, collect_powerup, null, this);
 
 }
@@ -347,6 +387,7 @@ function render () {
     game.debug.text(game.time.suggestedFps, 32, 32);
     game.debug.body(player, 'red', false);
     game.debug.body(enemy_wave, 'green', false);
+    //game.debug.body(hitbox, 'pink', false);
     //game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
     //game.debug.spriteInfo(player, 32, 450);
 
