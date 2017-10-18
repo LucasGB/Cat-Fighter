@@ -6,8 +6,19 @@ function preload() {
     game.load.spritesheet('cat', 'assets/used/player_spritesheet.png', 64, 64);
     game.load.spritesheet('specials_cat', 'assets/used/player_specials_spritesheet.png', 64, 64);
     game.load.spritesheet('energy_projectiles', 'assets/used/projectiles_spritesheet.png', 32, 32);
+
+    // Enemy spritesheets
+    // Lesser
     game.load.spritesheet('flying_tongue', 'assets/used/flying_tongue.png', 64, 64);
+    game.load.spritesheet('lesser_minion', 'assets/lesser_monster_spritesheet.png', 64, 59);
+
+    // Major
+    game.load.spritesheet('skull_monster', 'assets/skull_monster_spritesheet.png', 64, 64);
+    game.load.spritesheet('demon_flower', 'assets/demon_flower_spritesheet.png', 64, 64);
+
+    // Elite
     game.load.spritesheet('skeleton_warrior', 'assets/Skeleton/Sprite Sheets/Skeleton Walk.png', 22, 33);
+    game.load.spritesheet('dog_gun_fighter', 'assets/dog_gun_fighter_spritesheet.png', 64, 64);
 
     //game.load.image('background', 'assets/games/starstruck/background2.png');
     game.load.image('background', 'assets/Free Pixel Art Forest/Preview/Background.png');
@@ -52,7 +63,7 @@ var bg;
 var spawn_allowed = true;
 var spawn_timer;
 var enemy_credits = 20;
-var enemy_costs = [20, 5]
+var enemy_costs = [20, 10, 5]
 var enemy_wave;
 
 
@@ -163,6 +174,7 @@ function create_hitboxes(){
 
     return hitboxes;
 }
+
 function spawn_enemies(){
     var tmp_credits = enemy_credits
     spawn_allowed = false;
@@ -170,7 +182,7 @@ function spawn_enemies(){
 
     while(tmp_credits > 0){
         var rand = enemy_costs[Math.floor(Math.random() * enemy_costs.length)]
-
+        console.log(rand);
         if(rand == 100){
 
         } else if(rand == 50){
@@ -180,12 +192,20 @@ function spawn_enemies(){
             enemy.anchor.setTo(0.5, 0.5);
             game.physics.enable(enemy, Phaser.Physics.ARCADE);
             enemy.body.collideWorldBounds = true;
-            enemy.body.gravity.y = 800;
+            enemy.body.gravity.y = 1000;
             enemy.health = 100
             enemy.animations.add('march', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 30, true);
             enemy.animations.play('march');
             enemy.scale.setTo(1.5);
         } else if(rand == 10){
+            var enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), 2000, 'lesser_minion');
+            enemy.anchor.setTo(0.5, 0.5);
+            game.physics.enable(enemy, Phaser.Physics.ARCADE);
+            enemy.body.collideWorldBounds = true;
+            enemy.body.gravity.y = 1000;
+            enemy.health = 30;
+            enemy.animations.add('walk', [9, 10, 11, 12], 15, true);
+            enemy.animations.play('walk')
 
         } else if(rand == 5){
             var enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), game.rnd.integerInRange(0, 300), 'flying_tongue');
@@ -385,7 +405,7 @@ function apply_damage(bullet, enemy){
 function render () {
 
     game.debug.text(game.time.suggestedFps, 32, 32);
-    game.debug.body(player, 'red', false);
+    game.debug.body(hitboxes, 'red', false);
     game.debug.body(enemy_wave, 'green', false);
     //game.debug.body(hitbox, 'pink', false);
     //game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
