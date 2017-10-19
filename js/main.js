@@ -3,7 +3,7 @@ var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload:
 
 function preload() {
 
-    game.load.spritesheet('cat', 'assets/used/player_spritesheet.png', 64, 64);
+    game.load.spritesheet('cat', 'assets/player_spritesheet.png', 64, 64);
     game.load.spritesheet('specials_cat', 'assets/used/player_specials_spritesheet.png', 64, 64);
     game.load.spritesheet('energy_projectiles', 'assets/used/projectiles_spritesheet.png', 32, 32);
 
@@ -28,7 +28,6 @@ function preload() {
 }
 
 var player;
-var facing = 'left';
 
 // GUI
 var health = "a";
@@ -89,19 +88,23 @@ function create() {
     //game.physics.arcade.gravity.y = 250;
 
     player = game.add.sprite(64, 550, 'cat');
+    player.facing = 'right';
+    player.performingAttack = false;
     player.anchor.setTo(0.5, 0.5);
 
     game.physics.enable(player, Phaser.Physics.ARCADE);
     player.body.gravity.y = 400;
     player.body.collideWorldBounds = true;
     player.body.setSize(16, 32, 22, 23);
+    create_player_animations();
+    player.animations.play('idle-right');
 
 
     bonus = game.add.group();
     bonus.enableBody = true;
     bonus.physicsBodyType = Phaser.Physics.ARCADE;
 
-    create_animations();
+    
 
     text1 = this.game.add.text(this.game.world.x + 47, 10, energyText, style2);
     energyTimer = this.game.time.create(false);
@@ -203,14 +206,19 @@ function spawn_enemies(){
             enemy.health = 30;
             enemy.body.setSize(25, 20, 20, 39);
             enemy.name = 'lesser_minion';
-            enemy.animations.add('walk', [9, 10, 11, 12], 15, true);
-            enemy.animations.play('walk');
+
+            enemy.animations.add('walk-right', [9, 10, 11, 12], 15, true);
+            enemy.animations.add('walk-left', [51, 52, 53, 54], 15, true);
+            enemy.animations.add('flinch-right', [24, 25, 26, 25, 24], 15, false);        
+            enemy.animations.add('flinch-left', [71, 70, 69, 70, 71], 15, false);
+            //enemy.animations.play('walk');
 
         } else if(rand == 5){
             enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), game.rnd.integerInRange(0, 300), 'flying_tongue');
             enemy = create_enemy_body(enemy);
             enemy.health = 20;
             enemy.name = 'flying_tongue';
+            enemy.body.setSize(25, 27, 20, 20);
             enemy.animations.add('walk', [0, 1, 2, 3, 4], 20, true);
             enemy.animations.play('walk')
         }
@@ -232,6 +240,11 @@ function create_enemy_body(enemy){
 function chase_player(){
     enemy_wave.forEach(function(enemy) {
         if(!enemy.flinching){
+            if(enemy.x >= player.x && enemy.name == "lesser_minion"){
+                enemy.animations.play('walk-left');
+            } else {
+                enemy.animations.play('walk-right');
+            }
             game.physics.arcade.moveToObject(enemy, player, 30);
         }
     }, this)
@@ -243,11 +256,13 @@ function check_collision(){
     })
 }
 
-function create_animations(){
+function create_player_animations(){
     // Player Animations
-    player.animations.add('idle', [0, 1, 2, 3], 4, true);
-    player.animations.add('left', [16, 17, 18, 19, 20, 21, 22, 23], 8, true);
-    player.animations.add('right', [16, 17, 18, 19, 20, 21, 22, 23], 8, true);
+    player.animations.add('idle-right', [0, 1, 2, 3], 4, true);
+    player.animations.add('idle-left', [336, 337, 338, 339], 4, true);
+    player.animations.add('move-right', [17, 18, 19, 20, 21, 22, 23], 15, true);
+    player.animations.add('move-left', [353, 354, 355, 356, 357, 358, 359], 15, true);
+
 
 
     player.animations.add('start_jump', [32, 33, 34], 3, true);
@@ -269,42 +284,33 @@ function create_animations(){
     player.animations.add('jump_shot_to_front', [320, 321, 322, 323, 324, 325], 6, true);
 }
 
-function process_input(){
+function move(){
     if (controls.left.isDown) {
         player.body.velocity.x = -150;
 
-        if (facing != 'left') {
-            player.animations.play('left');
-            facing = 'left';
-        }
+        player.animations.play('move-left');
+        player.facing = 'left';
     }
     else if (controls.right.isDown) {
         player.body.velocity.x = 150;
 
-        if (facing != 'right') {
-            player.animations.play('right');
-            facing = 'right';
-        }
+            player.animations.play('move-right');
+            player.facing = 'right';
     }
-    else {
-        if (facing != 'idle') {
-            player.animations.stop();
+    else if(!player.performingAttack){
+        player.animations.play('idle-' + player.facing);        
+    }
 
-            if (facing == 'left') {
-                player.frame = 0;
-            }
-            else {
-                player.frame = 5;
-            }
-            player.animations.play('idle');
-            facing = 'idle';
-        }
-    }
-    
-    if (controls.jump.isDown && player.body.onFloor() && game.time.now > jumpTimer) {
+        if (controls.jump.isDown && player.body.onFloor() && game.time.now > jumpTimer) {
         player.body.velocity.y = -250;
         player.animations.play('start_jump');
         jumpTimer = game.time.now + 750;
+    }
+}
+function process_input(){
+    if(!player.performingAttack){
+        console.log('udausd')
+        move();
     }
 
     if(controls.punch.isDown){
@@ -316,7 +322,8 @@ function process_input(){
     }
 
     if(game.input.activePointer.isDown){
-        console.log(stance);
+        player.performingAttack = true;
+        player.body.velocity.x = 0;
         switch(stance){
             case 1:     punch();
             break;
@@ -325,6 +332,7 @@ function process_input(){
             case 3:     shoot();
             break;
         }
+        player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); player.performingAttack = false; }, this);
     }
 }
 
@@ -345,6 +353,11 @@ function punch(){
         var hitbox = hitboxes.getFirstDead();
         hitbox.reset(player.x + 5, player.y - 8);
         hitbox.lifespan = 30;
+        if(player.facing == 'left'){
+
+        } else {
+
+        }
         hitbox.body.velocity.x = 500;
         hitbox.body.setSize(5,10,0, 25);
         next_punch = game.time.now + punch_rate;
@@ -355,7 +368,7 @@ function punch(){
             player.animations.play('right_punch');
             punch_arm = 0;
         }
-        player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle'); }, this);
+//        player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); }, this);
     }    
 }
 
@@ -378,13 +391,17 @@ function update() {
 
     // game.physics.arcade.collide(player, layer);
     trigger_spawn();
+    console.log(player.performingAttack);
 
     if(spawn_allowed && game.time.now > spawn_timer){
         spawn_enemies();
     }
 
     player.body.velocity.x = 0;
+
     process_input();
+    
+
     chase_player();
 
     game.physics.arcade.collide(bullets, enemy_wave, apply_damage, null, this);
@@ -403,14 +420,18 @@ function apply_damage(object, enemy){
     enemy.damage(2);
 
     if(enemy.name == 'lesser_minion'){
-        enemy.animations.add('flinch', [24, 25, 26, 25, 24], 15, false);        
+            if(enemy.x >= player.x){
+                enemy.animations.play('flinch-left');
+            } else {
+                enemy.animations.play('flinch-right');
+            }        
     } else if(enemy.name == 'flying_tongue'){
         enemy.animations.add('flinch', [17, 18, 17], 15, false);
         enemy.body.velocity.y = 0;
     }
     else if(enemy.name == 'skeleton_warrior'){
         enemy.animations.add('flinch', [17, 18, 19, 20, 21, 17], 15, false);
-    } 
+    }
     enemy.animations.play('flinch');
     enemy.flinching = true;
     enemy.body.velocity.x = 0;
