@@ -22,7 +22,10 @@ function preload() {
 
     //game.load.image('background', 'assets/games/starstruck/background2.png');
     game.load.image('background', 'assets/Free Pixel Art Forest/Preview/Background.png');
+
+    // Collectables
     game.load.image('wool_ball', 'assets/used/wool_ball.png');
+    game.load.image('milk_jar', 'assets/used/milk_jar.png');
     //game.load.image('bullet', 'assets/sprites/purple_ball.png');
 
 }
@@ -46,6 +49,7 @@ var fireRate = 100;
 var nextFire = 0;
 var controls;
 var stance = 1;
+var actionPerformed = false;
 
 var hitboxes;
 var punch_arm = 0;
@@ -271,13 +275,19 @@ function create_player_animations(){
 
 
     // Punches
-    player.animations.add('left_punch', [147, 148, 149, 150, 153], 15, false);
-    player.animations.add('right_punch', [150, 151, 152, 150, 153], 15, false);
+    player.animations.add('left_punch-right', [147, 148, 149, 150, 153], 15, false);
+    player.animations.add('right_punch-right', [150, 151, 152, 150, 153], 15, false);
+    player.animations.add('left_punch-left', [483, 484, 485, 486, 489], 15, false);
+    player.animations.add('right_punch-left', [486, 487, 488, 486, 489], 15, false);
 
     // Kicks
-    player.animations.add('low_kick', [161, 162, 163, 164], 15, false);
-    player.animations.add('middle_kick', [167, 168, 169, 170], 15, false);
-    player.animations.add('high_kick', [177, 178, 179, 180], 15, false);
+    player.animations.add('low_kick-right', [161, 162, 163, 164], 15, false);
+    player.animations.add('middle_kick-right', [167, 168, 169, 170], 15, false);
+    player.animations.add('high_kick-right', [177, 178, 179, 180], 15, false);
+
+    player.animations.add('low_kick-left', [497, 498, 499, 500], 15, false);
+    player.animations.add('middle_kick-left', [503, 504, 505, 506], 15, false);
+    player.animations.add('high_kick-left', [513, 514, 515, 516], 15, false);    
     //player.animations.add('right_punch', [166, 167, 168, 166, 160], 5, false);
 
     player.animations.add('fast_shot_to_air', [306, 307, 308], 60, false);
@@ -322,66 +332,70 @@ function process_input(){
     }
 
     if(game.input.activePointer.isDown){
-        player.performingAttack = true;
-        player.body.velocity.x = 0;
         switch(stance){
-            case 1:     punch();
+            case 1:
+                if(game.time.now > next_punch){
+                    player.performingAttack = true;
+                    player.body.velocity.x = 0;
+                    punch();
+                    actionPerformed = true;
+                }
             break;
-            case 2:     kick();
+            case 2:     
+                if(game.time.now > next_kick){
+                    player.performingAttack = true;
+                    player.body.velocity.x = 0;
+                    kick();
+                    actionPerformed = true;
+                }
             break;
-            case 3:     shoot();
+            case 3:     
+                if (game.time.now > nextFire && bullets.countDead() > 0) {
+                    player.performingAttack = true;
+                    player.body.velocity.x = 0;
+                    shoot();
+                    actionPerformed = true;
+                }
             break;
-        } 
-        if(player.animations.currentAnim.name != "idle-right" &&
-            player.animations.currentAnim.name != "idle-left" && 
-            player.animations.currentAnim.name != "move-right" && 
-            player.animations.currentAnim.name != "move-left"){
-                    player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); player.performingAttack = false; }, this);
-            }
+        }
+        if(actionPerformed){
+            player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); player.performingAttack = false; }, this);            
+            actionPerformed = false;
+        }
     }
 }
 
 function shoot(){
-       if (game.time.now > nextFire && bullets.countDead() > 0) {
-            player.animations.play('fast_shot_to_air');
-            nextFire = game.time.now + fireRate;
-            var bullet = bullets.getFirstDead();
-            bullet.reset(player.x - 8, player.y - 8);
-            bullet.rotation = this.game.math.angleBetween(player.x, player.y, game.input.activePointer.x, this.game.input.activePointer.y);
-             
-            game.physics.arcade.moveToPointer(bullet, 300);
-       }  
+    player.animations.play('fast_shot_to_air');
+    nextFire = game.time.now + fireRate;
+    var bullet = bullets.getFirstDead();
+    bullet.reset(player.x - 8, player.y - 8);
+    bullet.rotation = this.game.math.angleBetween(player.x, player.y, game.input.activePointer.x, this.game.input.activePointer.y);
+
+    game.physics.arcade.moveToPointer(bullet, 300);
 }
 
 function punch(){
-    if(game.time.now > next_punch){
-        var hitbox = hitboxes.getFirstDead();
-        hitbox.reset(player.x + 5, player.y - 8);
-        hitbox.lifespan = 30;
-        if(player.facing == 'left'){
+      var hitbox = hitboxes.getFirstDead();
+      hitbox.reset(player.x + 5, player.y - 8);
+      hitbox.lifespan = 30;
+      hitbox.body.velocity.x = 500;
+      hitbox.body.setSize(5,10,0, 25);
 
-        } else {
+      next_punch = game.time.now + punch_rate;
 
-        }
-        hitbox.body.velocity.x = 500;
-        hitbox.body.setSize(5,10,0, 25);
-        next_punch = game.time.now + punch_rate;
-        if(!punch_arm){
-            player.animations.play('left_punch');
-            punch_arm = 1;
-        } else {
-            player.animations.play('right_punch');
-            punch_arm = 0;
-        }
-    }    
+      if(!punch_arm){
+          player.animations.play('left_punch-' + player.facing);
+          punch_arm = 1;
+      } else {
+          player.animations.play('right_punch-' + player.facing);
+          punch_arm = 0;
+      } 
 }
 
 function kick(){
-    if(game.time.now > next_kick){
-        next_kick = game.time.now + kick_rate;
-        player.animations.play(kick_types[Math.floor(Math.random() * kick_types.length)]);    
-
-    }    
+    next_kick = game.time.now + kick_rate;
+    player.animations.play(kick_types[Math.floor(Math.random() * kick_types.length)] + '-' + player.facing);    
 }
 
 function trigger_spawn(){    
