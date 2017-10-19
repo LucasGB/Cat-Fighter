@@ -163,14 +163,14 @@ function create_hitboxes(){
     hitboxes.enableBody = true;
     hitboxes.physicsBodyType = Phaser.Physics.ARCADE;
 
-    hitboxes.createMultiple(50, 'energy_projectiles');
+    hitboxes.createMultiple(5, null);
     hitboxes.setAll('checkWorldBounds', true);
     hitboxes.setAll('outOfBoundsKill', true);
     hitboxes.setAll('anchor.x', 0.5);
     hitboxes.setAll('anchor.y', 0.5);
-    hitboxes.setAll('body.gravity.y', 0);
-    hitboxes.callAll('animations.add', 'animations', 'energy_shot', [48, 49, 50, 51, 52], 8, true);
-    hitboxes.callAll('play', null, 'energy_shot');
+    hitboxes.setAll('lifespan', 100);
+    hitboxes.setAll('setSize', 20, 20, 0, 0);
+    hitboxes.callAll('play', null, null);
 
     return hitboxes;
 }
@@ -194,6 +194,7 @@ function spawn_enemies(){
             enemy.body.collideWorldBounds = true;
             enemy.body.gravity.y = 1000;
             enemy.health = 100
+            enemy.name = 'skeleton_warrior';
             enemy.animations.add('march', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 30, true);
             enemy.animations.play('march');
             enemy.scale.setTo(1.5);
@@ -204,6 +205,7 @@ function spawn_enemies(){
             enemy.body.collideWorldBounds = true;
             enemy.body.gravity.y = 1000;
             enemy.health = 30;
+            enemy.name = 'lesser_minion';
             enemy.animations.add('walk', [9, 10, 11, 12], 15, true);
             enemy.animations.play('walk')
 
@@ -213,6 +215,7 @@ function spawn_enemies(){
             game.physics.enable(enemy, Phaser.Physics.ARCADE);
             enemy.body.collideWorldBounds = true;
             enemy.health = 20;
+            enemy.name = 'flying_tongue';
             enemy.animations.add('fly', [0, 1, 2, 3, 4], 20, true);
             enemy.animations.play('fly')
         }
@@ -333,20 +336,19 @@ function shoot(){
 
 function punch(){
     if(game.time.now > next_punch){
+        var hitbox = hitboxes.getFirstDead();
+        hitbox.reset(player.x + 5, player.y - 8);
+        hitbox.lifespan = 100;
         next_punch = game.time.now + punch_rate;
         if(!punch_arm){
             player.animations.play('left_punch');
-
-            var hitbox = hitboxes.getFirstDead();
-            hitbox.reset(player.x - 8, player.y - 8);
-
             punch_arm = 1;
         } else {
             player.animations.play('right_punch');
             punch_arm = 0;
         }
-    }
-    player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle'); }, this);
+        player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle'); }, this);
+    }    
 }
 
 function kick(){
@@ -389,9 +391,14 @@ function collect_powerup(player, bonus){
 
 }
 
-function apply_damage(bullet, enemy){
-    bullet.kill();
+function apply_damage(object, enemy){
+    object.kill();
     enemy.damage(2);
+
+    if(enemy.name == 'skeleton_warrior'){
+        
+    }
+    
     if(enemy.health == 2){
         var b = bonus.create(enemy.x, enemy.y, 'wool_ball');
         b.scale.setTo(0.125);
@@ -402,11 +409,17 @@ function apply_damage(bullet, enemy){
 
 }
 
+function renderGroup(member){
+    game.debug.body(member);
+}
+
 function render () {
 
     game.debug.text(game.time.suggestedFps, 32, 32);
     game.debug.body(hitboxes, 'red', false);
     game.debug.body(enemy_wave, 'green', false);
+    enemy_wave.forEachAlive(renderGroup, this);
+    hitboxes.forEachAlive(renderGroup, this);
     //game.debug.body(hitbox, 'pink', false);
     //game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
     //game.debug.spriteInfo(player, 32, 450);
