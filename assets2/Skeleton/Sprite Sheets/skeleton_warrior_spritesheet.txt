@@ -1,0 +1,6 @@
+Skeleton Attack = 0 0 774 37
+Skeleton Dead = 0 38 495 32
+Skeleton Hit = 496 38 240 32
+Skeleton Idle = 287 71 264 32
+Skeleton React = 552 71 88 32
+Skeleton Walk = 0 71 286 33
