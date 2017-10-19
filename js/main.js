@@ -307,9 +307,9 @@ function move(){
         jumpTimer = game.time.now + 750;
     }
 }
+
 function process_input(){
     if(!player.performingAttack){
-        console.log('udausd')
         move();
     }
 
@@ -331,8 +331,13 @@ function process_input(){
             break;
             case 3:     shoot();
             break;
-        }
-        player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); player.performingAttack = false; }, this);
+        } 
+        if(player.animations.currentAnim.name != "idle-right" &&
+            player.animations.currentAnim.name != "idle-left" && 
+            player.animations.currentAnim.name != "move-right" && 
+            player.animations.currentAnim.name != "move-left"){
+                    player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); player.performingAttack = false; }, this);
+            }
     }
 }
 
@@ -368,16 +373,15 @@ function punch(){
             player.animations.play('right_punch');
             punch_arm = 0;
         }
-//        player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle-' + player.facing); }, this);
     }    
 }
 
 function kick(){
     if(game.time.now > next_kick){
         next_kick = game.time.now + kick_rate;
-        player.animations.play(kick_types[Math.floor(Math.random() * kick_types.length)]);        
+        player.animations.play(kick_types[Math.floor(Math.random() * kick_types.length)]);    
+
     }    
-    player.animations.currentAnim.onComplete.add(() => { player.animations.play('idle'); }, this);
 }
 
 function trigger_spawn(){    
@@ -390,8 +394,8 @@ function trigger_spawn(){
 function update() {
 
     // game.physics.arcade.collide(player, layer);
-    trigger_spawn();
     console.log(player.performingAttack);
+    trigger_spawn();
 
     if(spawn_allowed && game.time.now > spawn_timer){
         spawn_enemies();
