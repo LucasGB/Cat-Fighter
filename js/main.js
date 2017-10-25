@@ -25,7 +25,7 @@ function preload() {
 
     // Collectables
     game.load.image('wool_ball', 'assets/used/wool_ball.png');
-    game.load.image('milk_jar', 'assets/used/milk_jar.png');
+    game.load.image('milk_jar', 'assets/milk_jar.png');
     //game.load.image('bullet', 'assets/sprites/purple_ball.png');
 
 }
@@ -456,8 +456,7 @@ function apply_damage(object, enemy){
     enemy.animations.currentAnim.onComplete.add(() => { enemy.animations.play('walk'); enemy.flinching = false; }, this);
     
     if(enemy.health == 2){
-        var b = bonus.create(enemy.x, enemy.y, 'wool_ball');
-        b.scale.setTo(0.125);
+        var b = bonus.create(enemy.x, enemy.y, 'milk_jar');
         b.body.gravity.y = 250;
         b.body.bounce.y = 0.2;
         b.body.collideWorldBounds = true;
