@@ -42,9 +42,9 @@ var lives = 7;
 var next_harm = 0;
 
 var energy = 50;
-var energyText = "energy:" + energy; 
+//var energyText = "energy:" + energy; 
 var energyTimer;
-var style2 = {font: "24px Arial", fill: "Yellow", align: "center" };
+//var style2 = {font: "24px Arial", fill: "Yellow", align: "center" };
 var text1;
 
 
@@ -52,7 +52,7 @@ var jumpTimer = 0;
 var controls;
 var bullets;
 
-var fireRate = 100;
+var fireRate = 200;
 var nextFire = 0;
 var controls;
 var stance = 1;
@@ -73,7 +73,7 @@ var test;
 var spawn_allowed = true;
 var spawn_timer;
 var enemy_credits = 20;
-var enemy_costs = [20, 10, 5]
+var enemy_costs = [50, 20, 10, 5]
 var enemy_wave;
 
 var bonus;
@@ -124,10 +124,10 @@ function create() {
     bonus.enableBody = true;
     bonus.physicsBodyType = Phaser.Physics.ARCADE;
 
-    text1 = this.game.add.text(this.game.world.x + 47, 10, energyText, style2);
-    energyTimer = this.game.time.create(false);
-    energyTimer.start();
-    energyTimer.loop(400, updateCounter, this);
+    //text1 = this.game.add.text(this.game.world.x + 47, 10, energyText, style2);
+    //energyTimer = this.game.time.create(false);
+    //energyTimer.start();
+    //energyTimer.loop(400, updateCounter, this);
 
     controls = define_controls();
 
@@ -144,18 +144,32 @@ function create() {
 }
 
 function updateHealth(){
-    if(game_state == "Initializing"){
-        console.log("foi");
+
+    if(game_state == "Initializing"){        
         for(i = 0; i < lives; i++){
             heart = health.create(20 + i * 40, 20, 'health');
             heart.scale.setTo(0.5, 0.5);
         }
-    } else if(lives > 0 && game_state == "Running"){
+    }
+
+    if(game_state == "Running" && lives > 0){
+        health.forEachAlive(function(life){
+            life.kill();
+        });
         for(i = 0; i < lives; i++){
-            health.children[i].destroy();
+            heart = health.create(20 + i * 40, 20, 'health');
+            heart.scale.setTo(0.5, 0.5);
         }
-    } else {
-        game_state = "GAMEOVER";
+    }
+    if(lives <= 0){
+        enemy_wave.forEachAlive(function(enemy){
+            enemy.kill();
+        });
+        player.animations.play('die');
+        //player.animations.currentAnim.onComplete.add(() => { game_state = "gameover"; }, this);
+        game_state = "gameover";
+        player.body.velocity.x = 0;
+        
     }
 }
 
@@ -234,7 +248,7 @@ function spawn_enemies(){
             enemy.animations.play('walk');
             enemy.scale.setTo(1.5);
 
-        } else if(rand == 50){
+        } else if(rand == 2){
             enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), 2000, 'demon_flower');
             enemy = create_enemy_body(enemy);
             enemy.body.gravity.y = 1000;
@@ -250,7 +264,14 @@ function spawn_enemies(){
         } else if(rand == 20){
 
         } else if(rand == 10){
-            enemy = enemy_wave.create(game.rnd.integerInRange(-50, 0), 570, 'lesser_minion');
+            var spawn_x;
+            if(game.rnd.integerInRange(0,1) == 0){
+                spawn_x = game.rnd.integerInRange(-50, 0);
+            } else {
+                spawn_x = game.rnd.integerInRange(800, 850);
+            }
+
+            enemy = enemy_wave.create(spawn_x, 570, 'lesser_minion');
             enemy = create_enemy_body(enemy);
             //enemy.body.gravity.y = 1000;
             
@@ -266,7 +287,16 @@ function spawn_enemies(){
             test = enemy;
 
         } else if(rand == 5){
-            enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), game.rnd.integerInRange(0, 300), 'flying_tongue');
+            var spawn_x;
+            var spawn_y;
+            if(game.rnd.integerInRange(0,1) == 0){
+                spawn_x = game.rnd.integerInRange(-50, 0);
+                spawn_y = game.rnd.integerInRange(0, 300);
+            } else {
+                spawn_x = game.rnd.integerInRange(800, 850);
+                spawn_y = game.rnd.integerInRange(0, 300);
+            }
+            enemy = enemy_wave.create(spawn_x, spawn_y, 'flying_tongue');
             enemy = create_enemy_body(enemy);
             enemy.health = 20;
             enemy.name = 'flying_tongue';
@@ -305,15 +335,9 @@ function chase_player(){
             }
             enemy.animations.play('walk' + side);
 
-            game.physics.arcade.moveToObject(enemy, player, 30);
+            game.physics.arcade.moveToObject(enemy, player, 60);
         }
     }, this)
-}
-
-function check_collision(){
-    enemy_wave.forEach(function(enemy) {
-
-    })
 }
 
 function create_player_animations(){
@@ -322,6 +346,7 @@ function create_player_animations(){
     player.animations.add('idle-left', [336, 337, 338, 339], 4, true);
     player.animations.add('move-right', [17, 18, 19, 20, 21, 22, 23], 15, true);
     player.animations.add('move-left', [353, 354, 355, 356, 357, 358, 359], 15, true);
+    player.animations.add('die', [65, 66, 67, 68], 4, false);
 
 
 
@@ -436,7 +461,7 @@ function punch(){
       hitbox.reset(player.x + 5, player.y - 8);
       hitbox.lifespan = 30;
       hitbox.body.velocity.x = 500;
-      hitbox.body.setSize(5,10,0, 25);
+      hitbox.body.setSize(15, 10,0, 25);
 
       next_punch = game.time.now + punch_rate;
 
@@ -463,24 +488,22 @@ function trigger_spawn(){
 
 function update() {
 
-    trigger_spawn();
+    if(game_state != "gameover"){
+       trigger_spawn();
 
-    if(spawn_allowed && game.time.now > spawn_timer){
-        spawn_enemies();
+       if(spawn_allowed && game.time.now > spawn_timer){
+           spawn_enemies();
+       }
+
+       player.body.velocity.x = 0;
+       process_input();
+       chase_player();
+       game.physics.arcade.collide(wall, enemy_wave);
+       game.physics.arcade.collide(player, enemy_wave, harm_player, null, this);
+       game.physics.arcade.collide(bullets, enemy_wave, apply_damage, null, this);
+       game.physics.arcade.collide(hitboxes, enemy_wave, apply_damage, null, this);
+       game.physics.arcade.collide(player, bonus, collect_powerup, null, this);
     }
-
-    player.body.velocity.x = 0;
-
-    process_input();
-    
-
-    chase_player();
-
-    game.physics.arcade.collide(wall, enemy_wave);
-    game.physics.arcade.collide(player, enemy_wave, harm_player, null, this);
-    game.physics.arcade.collide(bullets, enemy_wave, apply_damage, null, this);
-    game.physics.arcade.collide(hitboxes, enemy_wave, apply_damage, null, this);
-    game.physics.arcade.collide(player, bonus, collect_powerup, null, this);
 
 }
 
@@ -503,11 +526,21 @@ function apply_damage(object, enemy){
     enemy.damage(8);
 
     if(!enemy.alive){
-        if(Math.random() * 100 < 80){
-            var b = bonus.create(enemy.x, enemy.y, 'milk_jar');
+        var b;
+        if(Math.random() * 100 < 50){
+            b = bonus.create(enemy.x, enemy.y, 'milk_jar');
             b.body.collideWorldBounds = true;
             b.body.gravity.y = 250;
             b.body.bounce.y = 0.2;
+            b.lifespan = 1000;
+
+        } else if(Math.random() * 100 < 70){
+            b = bonus.create(enemy.x, enemy.y, 'wool_ball');
+            b.body.collideWorldBounds = true;
+            b.scale.setTo(0.125);
+            b.body.gravity.y = 250;
+            b.body.bounce.y = 0.2;
+            b.lifespan = 1000;
         }
     }
 
@@ -538,13 +571,13 @@ function renderGroup(member){
 
 function render () {
 
-    game.debug.text(game.time.suggestedFps, 32, 32);
+    //game.debug.text(game.time.suggestedFps, 32, 32);
 
-    game.debug.body(wall, 'blue', false);
-    game.debug.body(hitboxes, 'red', false);
-    game.debug.body(enemy_wave, 'green', false);
-    enemy_wave.forEachAlive(renderGroup, this);
-    hitboxes.forEachAlive(renderGroup, this);
+    //game.debug.body(wall, 'blue', false);
+    //game.debug.body(hitboxes, 'red', false);
+    //game.debug.body(enemy_wave, 'green', false);
+    //enemy_wave.forEachAlive(renderGroup, this);
+   // hitboxes.forEachAlive(renderGroup, this);
     //game.debug.body(hitbox, 'pink', false);
     //game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
     //game.debug.spriteInfo(player, 32, 450);
