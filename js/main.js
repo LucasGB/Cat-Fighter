@@ -9,7 +9,7 @@ function preload() {
 
     // Enemy spritesheets
     // Lesser
-    game.load.spritesheet('flying_tongue', 'assets/used/flying_tongue.png', 64, 64);
+    game.load.spritesheet('flying_tongue', 'assets/flying_tongue.png', 64, 64);
     game.load.spritesheet('lesser_minion', 'assets/lesser_monster_spritesheet.png', 64, 59);
 
     // Major
@@ -22,6 +22,10 @@ function preload() {
 
     //game.load.image('background', 'assets/games/starstruck/background2.png');
     game.load.image('background', 'assets/Free Pixel Art Forest/Preview/Background.png');
+
+    // Sprites
+    // HUD
+    game.load.image('heakth', 'assets/used/health.png');
 
     // Collectables
     game.load.image('wool_ball', 'assets/used/wool_ball.png');
@@ -191,10 +195,6 @@ function spawn_enemies(){
         var enemy;
 
         if(rand == 100){
-
-        } else if(rand == 50){
-
-        } else if(rand == 20){
             enemy = enemy_wave.create(700, 550, 'skeleton_warrior');
             enemy = create_enemy_body(enemy);
             enemy.body.gravity.y = 1000;
@@ -203,6 +203,22 @@ function spawn_enemies(){
             enemy.animations.add('walk', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 30, true);
             enemy.animations.play('walk');
             enemy.scale.setTo(1.5);
+
+        } else if(rand == 50){
+            enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), 2000, 'demon_flower');
+            enemy = create_enemy_body(enemy);
+            enemy.body.gravity.y = 1000;
+            enemy.health = 30;
+            enemy.body.setSize(25, 20, 20, 39);
+            enemy.name = 'demon_flower';
+
+            enemy.animations.add('walk-right', [130, 131, 132, 133, 134, 135], 15, true);
+            enemy.animations.add('walk-left', [23, 22, 21, 20, 19, 18], 15, true);
+            enemy.animations.add('flinch-right', [161, 162, 162, 161], 15, false);        
+            enemy.animations.add('flinch-left', [66, 65, 65, 66], 15, false);
+
+        } else if(rand == 20){
+
         } else if(rand == 10){
             enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), 2000, 'lesser_minion');
             enemy = create_enemy_body(enemy);
@@ -223,8 +239,11 @@ function spawn_enemies(){
             enemy.health = 20;
             enemy.name = 'flying_tongue';
             enemy.body.setSize(25, 27, 20, 20);
-            enemy.animations.add('walk', [0, 1, 2, 3, 4], 20, true);
-            enemy.animations.play('walk')
+
+            enemy.animations.add('walk-right', [0, 1, 2, 3, 4], 20, true);
+            enemy.animations.add('walk-left', [28, 27, 26, 25, 24], 15, true);
+            enemy.animations.add('flinch-right', [17, 18, 18, 17], 15, false);        
+            enemy.animations.add('flinch-left', [42, 41, 41, 42], 15, false);
         }
 
         tmp_credits = tmp_credits - rand
@@ -244,11 +263,12 @@ function create_enemy_body(enemy){
 function chase_player(){
     enemy_wave.forEach(function(enemy) {
         if(!enemy.flinching){
-            if(enemy.x >= player.x && enemy.name == "lesser_minion"){
-                enemy.animations.play('walk-left');
+            if(enemy.x >= player.x){
+                side = '-left';
             } else {
-                enemy.animations.play('walk-right');
+                side = '-right';
             }
+            enemy.animations.play('walk' + side);
             game.physics.arcade.moveToObject(enemy, player, 30);
         }
     }, this)
@@ -407,8 +427,6 @@ function trigger_spawn(){
 
 function update() {
 
-    // game.physics.arcade.collide(player, layer);
-    console.log(player.performingAttack);
     trigger_spawn();
 
     if(spawn_allowed && game.time.now > spawn_timer){
@@ -435,32 +453,35 @@ function collect_powerup(player, bonus){
 
 function apply_damage(object, enemy){
     object.kill();
-    enemy.damage(2);
+    enemy.damage(8);
 
-    if(enemy.name == 'lesser_minion'){
-            if(enemy.x >= player.x){
-                enemy.animations.play('flinch-left');
-            } else {
-                enemy.animations.play('flinch-right');
-            }        
-    } else if(enemy.name == 'flying_tongue'){
-        enemy.animations.add('flinch', [17, 18, 17], 15, false);
+    if(!enemy.alive){
+        if(Math.random() * 100 < 80){
+            var b = bonus.create(enemy.x, enemy.y, 'milk_jar');
+            b.body.gravity.y = 250;
+            b.body.bounce.y = 0.2;
+            b.body.collideWorldBounds = true;
+        }
+    }
+
+    var side;
+
+    if(enemy.x >= player.x){
+        side = '-left';
+    } else {
+        side = '-right';
+    }
+
+    if(enemy.name == 'flying_tongue'){
         enemy.body.velocity.y = 0;
     }
-    else if(enemy.name == 'skeleton_warrior'){
-        enemy.animations.add('flinch', [17, 18, 19, 20, 21, 17], 15, false);
-    }
-    enemy.animations.play('flinch');
+    //else if(enemy.name == 'skeleton_warrior'){
+        //enemy.animations.add('flinch', [17, 18, 19, 20, 21, 17], 15, false);
+    //}
+    enemy.animations.play('flinch' + side);
     enemy.flinching = true;
     enemy.body.velocity.x = 0;
     enemy.animations.currentAnim.onComplete.add(() => { enemy.animations.play('walk'); enemy.flinching = false; }, this);
-    
-    if(enemy.health == 2){
-        var b = bonus.create(enemy.x, enemy.y, 'milk_jar');
-        b.body.gravity.y = 250;
-        b.body.bounce.y = 0.2;
-        b.body.collideWorldBounds = true;
-    }
 
 }
 
