@@ -25,19 +25,19 @@ function preload() {
 
     // Sprites
     // HUD
-    game.load.image('heakth', 'assets/used/health.png');
+    game.load.image('health', 'assets/health.png');
 
     // Collectables
     game.load.image('wool_ball', 'assets/used/wool_ball.png');
     game.load.image('milk_jar', 'assets/milk_jar.png');
-    //game.load.image('bullet', 'assets/sprites/purple_ball.png');
 
 }
 
 var player;
 
 // GUI
-var health = "a";
+var health;
+var lives = 7;
 var energy = 50;
 var energyText = "energy:" + energy; 
 var energyTimer;
@@ -65,7 +65,7 @@ var next_kick = 0;
 var kick_types = ['low_kick', 'middle_kick', 'high_kick'];
 
 var bg;
-
+var test;
 
 var spawn_allowed = true;
 var spawn_timer;
@@ -112,8 +112,6 @@ function create() {
     bonus.enableBody = true;
     bonus.physicsBodyType = Phaser.Physics.ARCADE;
 
-    
-
     text1 = this.game.add.text(this.game.world.x + 47, 10, energyText, style2);
     energyTimer = this.game.time.create(false);
     energyTimer.start();
@@ -121,12 +119,22 @@ function create() {
 
     controls = define_controls();
 
+    health = game.add.group();
+    updateHealth();
+
     controls.fullscreen.onDown.add(toggleFullScreen)
 
     bullets = create_projectiles();
     hitboxes = create_hitboxes();
 
     spawn_enemies();
+}
+
+function updateHealth(){
+    for(i = 0; i < lives; i++){
+        heart = health.create(20 + i * 40, 20, 'health');
+        heart.scale.setTo(0.5, 0.5);
+    }
 }
 
 function updateCounter(){
@@ -220,18 +228,18 @@ function spawn_enemies(){
         } else if(rand == 20){
 
         } else if(rand == 10){
-            enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), 2000, 'lesser_minion');
+            enemy = enemy_wave.create(game.rnd.integerInRange(-10, 300), 2000, 'lesser_minion');
             enemy = create_enemy_body(enemy);
             enemy.body.gravity.y = 1000;
             enemy.health = 30;
             enemy.body.setSize(25, 20, 20, 39);
-            enemy.name = 'lesser_minion';
+            enemy.name = 'lesser_minion';            
 
             enemy.animations.add('walk-right', [9, 10, 11, 12], 15, true);
             enemy.animations.add('walk-left', [51, 52, 53, 54], 15, true);
             enemy.animations.add('flinch-right', [24, 25, 26, 25, 24], 15, false);        
             enemy.animations.add('flinch-left', [71, 70, 69, 70, 71], 15, false);
-            //enemy.animations.play('walk');
+            test = enemy;
 
         } else if(rand == 5){
             enemy = enemy_wave.create(game.rnd.integerInRange(0, 300), game.rnd.integerInRange(0, 300), 'flying_tongue');
@@ -255,7 +263,7 @@ function spawn_enemies(){
 function create_enemy_body(enemy){
     enemy.anchor.setTo(0.5, 0.5);
     game.physics.enable(enemy, Phaser.Physics.ARCADE);
-    enemy.body.collideWorldBounds = true;
+    enemy.body.collideWorldBounds = false;
     enemy.flinching = false;
     return enemy
 }
@@ -426,6 +434,7 @@ function trigger_spawn(){
 }
 
 function update() {
+    console.log(test.x);
 
     trigger_spawn();
 
@@ -460,7 +469,6 @@ function apply_damage(object, enemy){
             var b = bonus.create(enemy.x, enemy.y, 'milk_jar');
             b.body.gravity.y = 250;
             b.body.bounce.y = 0.2;
-            b.body.collideWorldBounds = true;
         }
     }
 
