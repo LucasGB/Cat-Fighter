@@ -34,10 +34,13 @@ function preload() {
 }
 
 var player;
+var game_state = "Initializing";
 
 // GUI
 var health;
 var lives = 7;
+var next_harm = 0;
+
 var energy = 50;
 var energyText = "energy:" + energy; 
 var energyTimer;
@@ -76,6 +79,8 @@ var enemy_wave;
 var bonus;
 var bolas_de_la;
 
+var wall;
+
 function toggleFullScreen() {
     game.scale.fullScreenScaleMode = Phaser.ScaleManager.SHOW_ALL
     if (game.scale.isFullScreen) {
@@ -93,6 +98,13 @@ function create() {
 
     bg = game.add.tileSprite(0, 0, 800, 600, 'background');
 
+    wall = game.add.sprite(-200, 600, '');
+    wall.scale.x = 1200;
+    wall.scale.y = 10;
+    game.physics.enable(wall, Phaser.Physics.ARCADE);
+    wall.body.immovable = true;
+    wall.collideWorldBounds = true;
+    wall.allowGravity = false;
     //game.physics.arcade.gravity.y = 250;
 
     player = game.add.sprite(64, 550, 'cat');
@@ -128,12 +140,22 @@ function create() {
     hitboxes = create_hitboxes();
 
     spawn_enemies();
+    game_state = "Running";
 }
 
 function updateHealth(){
-    for(i = 0; i < lives; i++){
-        heart = health.create(20 + i * 40, 20, 'health');
-        heart.scale.setTo(0.5, 0.5);
+    if(game_state == "Initializing"){
+        console.log("foi");
+        for(i = 0; i < lives; i++){
+            heart = health.create(20 + i * 40, 20, 'health');
+            heart.scale.setTo(0.5, 0.5);
+        }
+    } else if(lives > 0 && game_state == "Running"){
+        for(i = 0; i < lives; i++){
+            health.children[i].destroy();
+        }
+    } else {
+        game_state = "GAMEOVER";
     }
 }
 
@@ -228,12 +250,14 @@ function spawn_enemies(){
         } else if(rand == 20){
 
         } else if(rand == 10){
-            enemy = enemy_wave.create(game.rnd.integerInRange(-10, 300), 2000, 'lesser_minion');
+            enemy = enemy_wave.create(game.rnd.integerInRange(-50, 0), 570, 'lesser_minion');
             enemy = create_enemy_body(enemy);
-            enemy.body.gravity.y = 1000;
+            //enemy.body.gravity.y = 1000;
+            
             enemy.health = 30;
             enemy.body.setSize(25, 20, 20, 39);
-            enemy.name = 'lesser_minion';            
+            enemy.name = 'lesser_minion';       
+            enemy.body.gravity.y = 1000;     
 
             enemy.animations.add('walk-right', [9, 10, 11, 12], 15, true);
             enemy.animations.add('walk-left', [51, 52, 53, 54], 15, true);
@@ -264,6 +288,9 @@ function create_enemy_body(enemy){
     enemy.anchor.setTo(0.5, 0.5);
     game.physics.enable(enemy, Phaser.Physics.ARCADE);
     enemy.body.collideWorldBounds = false;
+    if(enemy.name != 'flying-tongue'){
+        enemy.body.velocity.y = 0;
+    }
     enemy.flinching = false;
     return enemy
 }
@@ -277,6 +304,7 @@ function chase_player(){
                 side = '-right';
             }
             enemy.animations.play('walk' + side);
+
             game.physics.arcade.moveToObject(enemy, player, 30);
         }
     }, this)
@@ -434,7 +462,6 @@ function trigger_spawn(){
 }
 
 function update() {
-    console.log(test.x);
 
     trigger_spawn();
 
@@ -449,6 +476,8 @@ function update() {
 
     chase_player();
 
+    game.physics.arcade.collide(wall, enemy_wave);
+    game.physics.arcade.collide(player, enemy_wave, harm_player, null, this);
     game.physics.arcade.collide(bullets, enemy_wave, apply_damage, null, this);
     game.physics.arcade.collide(hitboxes, enemy_wave, apply_damage, null, this);
     game.physics.arcade.collide(player, bonus, collect_powerup, null, this);
@@ -460,6 +489,15 @@ function collect_powerup(player, bonus){
     bonus.kill();
 }
 
+function harm_player(player, enemy){
+    if(game.time.now > next_harm){
+        next_harm = game.time.now + 500;
+        lives = lives - 1;
+        updateHealth();
+    }
+    console.log(lives);
+}
+
 function apply_damage(object, enemy){
     object.kill();
     enemy.damage(8);
@@ -467,6 +505,7 @@ function apply_damage(object, enemy){
     if(!enemy.alive){
         if(Math.random() * 100 < 80){
             var b = bonus.create(enemy.x, enemy.y, 'milk_jar');
+            b.body.collideWorldBounds = true;
             b.body.gravity.y = 250;
             b.body.bounce.y = 0.2;
         }
@@ -500,6 +539,8 @@ function renderGroup(member){
 function render () {
 
     game.debug.text(game.time.suggestedFps, 32, 32);
+
+    game.debug.body(wall, 'blue', false);
     game.debug.body(hitboxes, 'red', false);
     game.debug.body(enemy_wave, 'green', false);
     enemy_wave.forEachAlive(renderGroup, this);
